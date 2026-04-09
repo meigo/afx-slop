@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Settings panel (collapsible) -->
+        <div id="settings-header" class="settings-header" onclick="toggleSettings()">
+            <span class="arrow" id="settings-arrow">&#9654;</span>
+            <span>Settings</span>
+        </div>
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="setting-row">
+                <label>Provider</label>
+                <select id="provider" onchange="onProviderChange()">
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="ollama">Ollama (Local)</option>
+                </select>
+            </div>
+
+            <!-- Claude settings -->
+            <div id="claude-settings" class="provider-settings">
+                <div class="setting-row">
+                    <label>API Key</label>
+                    <input type="password" id="claude-api-key" placeholder="sk-ant-..." onchange="saveSettings()">
+                </div>
+                <div class="setting-row">
+                    <label>Model</label>
+                    <select id="claude-model" onchange="saveSettings()">
+                        <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                        <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                        <option value="claude-haiku-4-20250414">Claude Haiku 4</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- OpenAI settings -->
+            <div id="openai-settings" class="provider-settings hidden">
+                <div class="setting-row">
+                    <label>API Key</label>
+                    <input type="password" id="openai-api-key" placeholder="sk-..." onchange="saveSettings()">
+                </div>
+                <div class="setting-row">
+                    <label>Model</label>
+                    <select id="openai-model" onchange="saveSettings()">
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                        <option value="gpt-4.1">GPT-4.1</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Ollama settings -->
+            <div id="ollama-settings" class="provider-settings hidden">
+                <div class="setting-row">
+                    <label>URL</label>
+                    <input type="text" id="ollama-url" value="http://localhost:11434" onchange="saveSettings()">
+                </div>
+                <div class="setting-row">
+                    <label>Model</label>
+                    <input type="text" id="ollama-model" value="qwen2.5-coder:7b" onchange="saveSettings()">
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <label>Max Retries</label>
+                <input type="number" id="max-retries" value="3" min="0" max="10" onchange="saveSettings()">
+            </div>
+            <div class="setting-row">
+                <label>
+                    <input type="checkbox" id="rich-prompt" checked onchange="saveSettings()">
+                    Rich Prompt (more API reference)
+                </label>
+            </div>
+            <div class="setting-row actions">
+                <button class="btn-small" onclick="clearChat()">Clear Chat</button>
+                <button class="btn-small" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+
+        <!-- Chat messages -->
+        <div id="chat-container">
+            <div id="chat-messages">
+                <div class="welcome-msg">
+                    <p>AI Assistant for After Effects</p>
+                    <p class="sub">Describe what you want to create or modify.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Busy indicator -->
+        <div id="busy-indicator" class="hidden">
+            <div class="spinner"></div>
+            <span>Thinking...</span>
+        </div>
+
+        <!-- Input area -->
+        <div id="input-area">
+            <textarea id="prompt-input" placeholder="Describe what you want..." rows="2"
+                      onkeydown="handleKeyDown(event)"></textarea>
+            <button id="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script src="lib/CSInterface.js"></script>
+    <script src="js/ae_api_ref.js"></script>
+    <script src="js/llm_client.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

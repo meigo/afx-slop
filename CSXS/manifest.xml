@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="6.0" ExtensionBundleId="com.afx-slop.ai-assistant"
+                   ExtensionBundleVersion="1.0.0"
+                   ExtensionBundleName="AI Assistant for After Effects"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <ExtensionList>
+        <Extension Id="com.afx-slop.panel" Version="1.0.0"/>
+    </ExtensionList>
+
+    <ExecutionEnvironment>
+        <HostList>
+            <!-- After Effects CC 2020+ (version 17.0) through future -->
+            <Host Name="AEFT" Version="[17.0,99.9]"/>
+        </HostList>
+        <LocaleList>
+            <Locale Code="All"/>
+        </LocaleList>
+        <RequiredRuntimeList>
+            <RequiredRuntime Name="CSXS" Version="9.0"/>
+        </RequiredRuntimeList>
+    </ExecutionEnvironment>
+
+    <DispatchInfoList>
+        <Extension Id="com.afx-slop.panel">
+            <DispatchInfo>
+                <Resources>
+                    <MainPath>./client/index.html</MainPath>
+                    <ScriptPath>./host/index.jsx</ScriptPath>
+                </Resources>
+                <Lifecycle>
+                    <AutoVisible>true</AutoVisible>
+                </Lifecycle>
+                <UI>
+                    <Type>Panel</Type>
+                    <Menu>AI Assistant</Menu>
+                    <Geometry>
+                        <Size>
+                            <Height>600</Height>
+                            <Width>380</Width>
+                        </Size>
+                        <MinSize>
+                            <Height>300</Height>
+                            <Width>280</Width>
+                        </MinSize>
+                    </Geometry>
+                    <Icons>
+                        <Icon Type="Normal">./client/icons/icon.png</Icon>
+                    </Icons>
+                </UI>
+            </DispatchInfo>
+        </Extension>
+    </DispatchInfoList>
+</ExtensionManifest>

@@ -1,0 +1,17 @@
+{
+  "name": "afx-slop",
+  "version": "1.0.0",
+  "description": "AI Assistant CEP panel for Adobe After Effects",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint client/js/ host/",
+    "lint:fix": "eslint client/js/ host/ --fix"
+  },
+  "devDependencies": {
+    "eslint": "^10.2.0",
+    "vitest": "^4.1.3"
+  }
+}
