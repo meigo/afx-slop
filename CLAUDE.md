@@ -46,8 +46,15 @@ CSXS/
 
 Stored in browser localStorage (`afx-slop-settings`). Includes provider, API keys, model selection, max retries, rich prompt toggle.
 
+## Before committing
+
+- Run `npm run lint` and `npm test` — fix any failures before committing
+- When adding a larger feature, update the README to reflect the changes
+
 ## Testing / debugging
 
+- `npm test` — 36 unit tests (code extraction, project state formatting, system prompt)
+- `npm run lint` — ESLint with ES2020 rules for client JS, ES3 rules for ExtendScript
 - Enable PlayerDebugMode for unsigned extensions
 - Chrome DevTools at http://localhost:8088 (port from .debug file)
 - ExtendScript debugging via VS Code ExtendScript Debugger extension

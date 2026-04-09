@@ -100,6 +100,20 @@ Output: `build/afx-slop.zxp`
 
 The certificate is stored in `.certs/` (gitignored). Keep your certificate password safe for future builds.
 
+## Development
+
+```bash
+npm install          # install dev dependencies
+npm test             # run tests (36 tests across 3 suites)
+npm run test:watch   # run tests in watch mode
+npm run lint         # lint client JS + ExtendScript
+npm run lint:fix     # auto-fix lint issues
+```
+
+ESLint is configured with two rulesets:
+- **`client/js/`** — modern JS (ES2020) for the CEP Chromium environment
+- **`host/`** — ES3 for ExtendScript (catches accidental use of `let`, arrow functions, template literals, etc.)
+
 ## Debugging
 
 With the `.debug` file in place and `PlayerDebugMode` enabled, open Chrome DevTools at:
