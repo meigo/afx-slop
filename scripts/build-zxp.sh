@@ -71,8 +71,14 @@ rsync -a --exclude-from=- "$PROJECT_DIR/" "$STAGING/" <<'EXCLUDE'
 .debug
 build
 scripts
+tests
 node_modules
+package.json
+package-lock.json
+eslint.config.js
+vitest.config.js
 *.md
+*.zxp
 .DS_Store
 Thumbs.db
 EXCLUDE

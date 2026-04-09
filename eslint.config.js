@@ -28,7 +28,8 @@ export default [
             },
         },
         rules: {
-            "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+            // Functions are called from HTML onclick or other script tags — not "unused"
+            "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^(toggleSettings|addCodeMessage|clearHistory|handleKeyDown|onProviderChange|sendMessage|clearChat|saveSettings|LLMClient|buildSystemPrompt|SYSTEM_PROMPT_BASE|SYSTEM_PROMPT_RICH)$", caughtErrorsIgnorePattern: "^_" }],
             "no-undef": "error",
             "no-console": "off",
             "eqeqeq": ["error", "always"],
@@ -70,7 +71,8 @@ export default [
             },
         },
         rules: {
-            "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+            // Functions are called via evalScript from the panel — not "unused"
+            "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^(executeCode|getProjectState|getAEVersion|isProjectOpen|getActiveCompInfo)$", caughtErrorsIgnorePattern: "^_" }],
             "no-undef": "error",
             "eqeqeq": "off", // ES3 patterns often use ==
             "no-var": "off",

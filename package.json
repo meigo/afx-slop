@@ -11,6 +11,7 @@
     "lint:fix": "eslint client/js/ host/ --fix"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.2.0",
     "vitest": "^4.1.3"
   }

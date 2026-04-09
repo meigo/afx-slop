@@ -30,7 +30,7 @@ function executeCode(codeStr) {
         result.output = outputLines.join("\n");
     } catch (e) {
         // End undo group even on error so AE doesn't get stuck
-        try { app.endUndoGroup(); } catch (ignore) {}
+        try { app.endUndoGroup(); } catch (_ignore) {}
         result.error = e.toString();
         if (e.line) {
             result.error += " (line " + e.line + ")";
@@ -195,20 +195,20 @@ function describeLayer(layer) {
                     roundNum(textDoc.fillColor[2], 2)
                 ];
             }
-        } catch (e) {}
+        } catch (_e) {}
     } else if (layer instanceof ShapeLayer) {
         info.type = "shape";
     } else if (layer instanceof CameraLayer) {
         info.type = "camera";
         try {
             info.zoom = roundNum(layer.property("Camera Options").property("Zoom").value, 1);
-        } catch (e) {}
+        } catch (_e) {}
     } else if (layer instanceof LightLayer) {
         info.type = "light";
         try {
             info.lightType = layer.property("Light Options").property("Light Type").value;
             info.intensity = roundNum(layer.property("Light Options").property("Intensity").value, 1);
-        } catch (e) {}
+        } catch (_e) {}
     } else if (layer instanceof AVLayer) {
         if (layer.nullLayer) {
             info.type = "null";
@@ -258,7 +258,7 @@ function describeLayer(layer) {
             var opacity = transform.property("Opacity");
             if (opacity) info.opacity = roundNum(opacity.value, 1);
         }
-    } catch (e) {}
+    } catch (_e) {}
 
     // Parent
     if (layer.parent) {
@@ -302,7 +302,7 @@ function describeLayer(layer) {
                 kfInfo.push(keyframeProps[k] + ":" + prop.numKeys);
             }
         }
-    } catch (e) {}
+    } catch (_e) {}
     if (kfInfo.length > 0) {
         info.keyframes = kfInfo.join(", ");
     }
@@ -318,7 +318,7 @@ function describeLayer(layer) {
                 exprProps.push(propsToCheck[k]);
             }
         }
-    } catch (e) {}
+    } catch (_e) {}
     if (exprProps.length > 0) {
         info.expressions = exprProps.join(", ");
     }

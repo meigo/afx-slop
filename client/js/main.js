@@ -231,7 +231,7 @@ async function getProjectState() {
         var result = await evalScript("getProjectState()");
         var parsed = JSON.parse(result);
         return formatProjectState(parsed);
-    } catch (e) {
+    } catch (_e) {
         return "No project state available.";
     }
 }
