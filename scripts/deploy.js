@@ -1,17 +1,26 @@
 /**
  * Deploy extension to Adobe CEP extensions folder.
  * Copies project files (excluding dev-only dirs) to the CEP extensions directory.
+ * Works on both Windows and macOS.
  */
 import { cpSync, rmSync, existsSync } from "fs";
 import { join } from "path";
+import { homedir, platform } from "os";
 
-const appData = process.env.APPDATA;
-if (!appData) {
-    console.error("APPDATA not set — this script is Windows-only.");
-    process.exit(1);
+function getCEPExtensionsDir() {
+    if (platform() === "win32") {
+        const appData = process.env.APPDATA;
+        if (!appData) {
+            console.error("APPDATA environment variable not set.");
+            process.exit(1);
+        }
+        return join(appData, "Adobe", "CEP", "extensions");
+    }
+    // macOS
+    return join(homedir(), "Library", "Application Support", "Adobe", "CEP", "extensions");
 }
 
-const dest = join(appData, "Adobe", "CEP", "extensions", "afx-slop");
+const dest = join(getCEPExtensionsDir(), "afx-slop");
 const src = join(import.meta.dirname, "..");
 
 // Remove old copy
