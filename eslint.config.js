@@ -15,6 +15,9 @@ export default [
                 localStorage: "readonly",
                 console: "readonly",
                 fetch: "readonly",
+                btoa: "readonly",
+                XMLHttpRequest: "readonly",
+                setTimeout: "readonly",
                 Promise: "readonly",
                 JSON: "readonly",
                 // CEP globals
@@ -62,6 +65,7 @@ export default [
                 "ImportOptions": "readonly",
                 "ImportAsType": "readonly",
                 "KeyframeEase": "readonly",
+                "Property": "readonly",
                 "KeyframeInterpolationType": "readonly",
                 "Shape": "readonly",
                 "MaskMode": "readonly",
@@ -72,7 +76,7 @@ export default [
         },
         rules: {
             // Functions are called via evalScript from the panel — not "unused"
-            "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^(executeCode|getProjectState|getAEVersion|isProjectOpen|getActiveCompInfo)$", caughtErrorsIgnorePattern: "^_" }],
+            "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^(executeCode|getProjectState|getAEVersion|isProjectOpen|getActiveCompInfo|setEase|_fe|sanitizeCode)$", caughtErrorsIgnorePattern: "^_" }],
             "no-undef": "error",
             "eqeqeq": "off", // ES3 patterns often use ==
             "no-var": "off",

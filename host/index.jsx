@@ -6,14 +6,137 @@
  * ExtendScript is ES3 -- no let/const, no arrow functions, no template literals.
  */
 
+// ─── JSON polyfill (ExtendScript lacks native JSON) ───────────────────────────
+
+if (typeof JSON === "undefined") {
+    JSON = {};
+}
+if (typeof JSON.stringify !== "function") {
+    JSON.stringify = function(val) {
+        if (val === null) return "null";
+        if (typeof val === "undefined") return undefined;
+        if (typeof val === "boolean" || typeof val === "number") return String(val);
+        if (typeof val === "string") {
+            return '"' + val
+                .replace(/\\/g, "\\\\")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r")
+                .replace(/\t/g, "\\t") + '"';
+        }
+        if (val instanceof Array) {
+            var items = [];
+            for (var i = 0; i < val.length; i++) {
+                var v = JSON.stringify(val[i]);
+                items.push(v === undefined ? "null" : v);
+            }
+            return "[" + items.join(",") + "]";
+        }
+        if (typeof val === "object") {
+            var pairs = [];
+            for (var k in val) {
+                if (val.hasOwnProperty(k)) {
+                    var v = JSON.stringify(val[k]);
+                    if (v !== undefined) {
+                        pairs.push(JSON.stringify(k) + ":" + v);
+                    }
+                }
+            }
+            return "{" + pairs.join(",") + "}";
+        }
+        return undefined;
+    };
+}
+if (typeof JSON.parse !== "function") {
+    JSON.parse = function(str) {
+        return eval("(" + str + ")");
+    };
+}
+
 // ─── Code Execution ────────────────────────────────────────────────────────────
+
+// Adjust a KeyframeEase array to match the required dimension count
+function _fixEaseArray(easeArr, dims) {
+    if (!(easeArr instanceof Array)) return easeArr;
+    if (easeArr.length === dims) return easeArr;
+    var fixed = [];
+    for (var i = 0; i < dims; i++) {
+        fixed.push(easeArr[i] || easeArr[easeArr.length - 1]);
+    }
+    return fixed;
+}
+
+// Called from sanitized code: _fe(property, easeArray) — auto-detects dimensions
+function _fe(prop, easeArr) {
+    var dims = prop.value instanceof Array ? prop.value.length : 1;
+    return _fixEaseArray(easeArr, dims);
+}
 
 /**
  * Execute AI-generated ExtendScript code inside an undo group.
  * Returns JSON: { success: bool, output: string, error: string }
  */
-function executeCode(codeStr) {
+// Base64 decode for receiving code from the panel (avoids evalScript quoting issues)
+function decodeBase64(str) {
+    var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var output = "";
+    var i = 0;
+    // Remove any non-base64 characters
+    str = str.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+    while (i < str.length) {
+        var a = chars.indexOf(str.charAt(i++));
+        var b = chars.indexOf(str.charAt(i++));
+        var c = chars.indexOf(str.charAt(i++));
+        var d = chars.indexOf(str.charAt(i++));
+        var n1 = (a << 2) | (b >> 4);
+        var n2 = ((b & 15) << 4) | (c >> 2);
+        var n3 = ((c & 3) << 6) | d;
+        output += String.fromCharCode(n1);
+        if (c !== 64) output += String.fromCharCode(n2);
+        if (d !== 64) output += String.fromCharCode(n3);
+    }
+    // Decode UTF-8 bytes to string
+    try {
+        return decodeURIComponent(escape(output));
+    } catch (_e) {
+        return output;
+    }
+}
+
+/**
+ * Sanitize LLM-generated code before eval to fix common mistakes.
+ */
+function sanitizeCode(codeStr) {
+    // Replace let/const with var (ES3 compatibility)
+    codeStr = codeStr.replace(/\b(let|const)\s+/g, "var ");
+
+    // Replace console.log with $.writeln
+    codeStr = codeStr.replace(/console\.log\s*\(/g, "$.writeln(");
+
+    // Wrap top-level return in IIFE
+    if (/(?:^|\n)\s*return\b/.test(codeStr)) {
+        codeStr = "(function(){" + codeStr + "})();";
+    }
+
+    // Fix setTemporalEaseAtKey: wrap ease array args with _fe() to auto-fix dimensions.
+    // Matches: obj.setTemporalEaseAtKey(index, [ease,...], [ease,...])
+    // and:     obj.setTemporalEaseAtKey(index, [ease,...])
+    codeStr = codeStr.replace(
+        /(\w[\w.\[\]"']*?)\.setTemporalEaseAtKey\s*\(\s*([^,]+),\s*(\[[^\]]*\])\s*,\s*(\[[^\]]*\])\s*\)/g,
+        "$1.setTemporalEaseAtKey($2, _fe($1,$3), _fe($1,$4))"
+    );
+    codeStr = codeStr.replace(
+        /(\w[\w.\[\]"']*?)\.setTemporalEaseAtKey\s*\(\s*([^,]+),\s*(\[[^\]]*\])\s*\)/g,
+        "$1.setTemporalEaseAtKey($2, _fe($1,$3))"
+    );
+
+    return codeStr;
+}
+
+function executeCode(encodedStr) {
     var result = { success: false, output: "", error: "" };
+    var codeStr = decodeBase64(encodedStr);
+    codeStr = sanitizeCode(codeStr);
 
     // Collect $.writeln output
     var outputLines = [];
@@ -29,8 +152,9 @@ function executeCode(codeStr) {
         result.success = true;
         result.output = outputLines.join("\n");
     } catch (e) {
-        // End undo group even on error so AE doesn't get stuck
+        // Close undo group, then undo to roll back any partial changes
         try { app.endUndoGroup(); } catch (_ignore) {}
+        try { app.executeCommand(16); } catch (_ignore) {} // 16 = Edit > Undo
         result.error = e.toString();
         if (e.line) {
             result.error += " (line " + e.line + ")";
@@ -39,6 +163,15 @@ function executeCode(codeStr) {
     }
 
     $.writeln = origWriteln;
+
+    // Truncate output to avoid exceeding evalScript string limits
+    if (result.output.length > 5000) {
+        result.output = result.output.substring(0, 5000) + "\n...(truncated)";
+    }
+    if (result.error.length > 2000) {
+        result.error = result.error.substring(0, 2000) + "...(truncated)";
+    }
+
     return JSON.stringify(result);
 }
 
@@ -328,6 +461,24 @@ function describeLayer(layer) {
 
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Set temporal ease on a keyframe, automatically matching the property's dimensions.
+ * Works for 1D (Opacity, Rotation), 2D (Position, Scale), and 3D properties.
+ * @param {Property} prop - The property with keyframes
+ * @param {number} keyIndex - The keyframe index (1-based)
+ * @param {number} speed - Ease speed (0 = smooth)
+ * @param {number} influence - Ease influence percentage (default 33)
+ */
+function setEase(prop, keyIndex, speed, influence) {
+    if (typeof influence === "undefined") influence = 33;
+    var dims = prop.value instanceof Array ? prop.value.length : 1;
+    var ease = [];
+    for (var i = 0; i < dims; i++) {
+        ease.push(new KeyframeEase(speed, influence));
+    }
+    prop.setTemporalEaseAtKey(keyIndex, ease, ease);
+}
 
 function roundNum(val, decimals) {
     if (typeof val !== "number" || isNaN(val)) return 0;

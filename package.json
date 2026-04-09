@@ -8,7 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint client/js/ host/",
-    "lint:fix": "eslint client/js/ host/ --fix"
+    "lint:fix": "eslint client/js/ host/ --fix",
+    "deploy": "node scripts/deploy.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

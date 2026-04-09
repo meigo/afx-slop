@@ -6,11 +6,14 @@ Supports **Claude**, **OpenAI**, and **Ollama** (local).
 
 ## Features
 
-- **Natural language control** — "create a cinematic title card", "add a fade in to all layers", "set up a lower third"
-- **Auto-execution** — generated ExtendScript runs directly in After Effects
+- **Natural language control** — describe what you want, the AI generates ExtendScript and executes it
+- **Auto-execution** — generated code runs directly in After Effects inside an undo group
 - **Scene awareness** — the AI sees your current project state (compositions, layers, effects, keyframes)
-- **Auto-retry** — if code fails, it sends the error back to the AI for automatic correction
-- **Conversation history** — iterative refinement ("make it bigger", "change the color to red", "add a bounce")
+- **Auto-retry with error hints** — if code fails, it sends the error back with targeted fix hints
+- **Auto-undo on failure** — failed executions are rolled back so partial changes don't pile up
+- **Code sanitizer** — auto-fixes common LLM mistakes (ES3 violations, dimension mismatches, etc.)
+- **Rate limit handling** — automatic retry with backoff on API rate limits
+- **Conversation history** — iterative refinement ("make it bigger", "change the color to red")
 - **Dark theme** — matches After Effects UI
 
 ## Installation
@@ -34,21 +37,28 @@ defaults write com.adobe.CSXS.11 PlayerDebugMode 1
 reg add HKCU\Software\Adobe\CSXS.11 /v PlayerDebugMode /t REG_SZ /d 1 /f
 ```
 
-> Adjust `CSXS.11` to match your CEP version (e.g., `CSXS.9` for older AE versions).
+> Adjust `CSXS.11` to match your CEP version: `CSXS.12` for AE 2025, `CSXS.11` for AE 2022–2024, `CSXS.9`/`CSXS.10` for older versions.
 
-#### 2. Symlink the extension
+#### 2. Deploy the extension
 
 ```bash
-# macOS
-ln -s /path/to/afx-slop ~/Library/Application\ Support/Adobe/CEP/extensions/afx-slop
-
-# Windows (Command Prompt as Administrator)
-mklink /D "%APPDATA%\Adobe\CEP\extensions\afx-slop" "C:\path\to\afx-slop"
+# Install dependencies and deploy to CEP extensions folder
+npm install
+npm run deploy
 ```
+
+On macOS you can alternatively symlink:
+
+```bash
+ln -s /path/to/afx-slop ~/Library/Application\ Support/Adobe/CEP/extensions/afx-slop
+```
+
+> **Note:** Windows symlinks (`mklink /D`) are not recommended — CEP cannot load host scripts through them. Use `npm run deploy` instead, which copies the extension to the correct location. Re-run after making changes.
 
 #### 3. Enable scripting in After Effects
 
 Go to **Edit > Preferences > Scripting & Expressions** and enable:
+
 - "Allow Scripts to Write Files and Access Network"
 
 #### 4. Open the panel
@@ -61,27 +71,60 @@ Click the **Settings** header in the panel, select your LLM provider, and enter 
 
 ## Usage
 
-Type natural language prompts in the input field:
+Type natural language prompts in the input field. Press **Enter** to send (Shift+Enter for newline).
 
-- "Create a 10-second 1080p composition"
-- "Add a text layer that says 'Hello World' with a bounce animation"
-- "Apply a Gaussian blur of 20px to the selected layer"
-- "Create a lower third with my name"
-- "Add a fade in and fade out to all layers"
-- "Set up a particle background using shape layers"
-- "Make a kinetic typography animation with the words 'Motion Design'"
-- "Add a wiggle expression to the position of layer 1"
+### Example prompts
+
+**Compositions and setup:**
+
+- "Create a 10-second 1920x1080 composition at 30fps"
+- "Duplicate the active comp and rename it to 'v2'"
+- "Set the comp background to dark blue"
+
+**Layers:**
+
+- "Add a text layer that says 'Hello World' in white, centered"
+- "Add a solid blue background layer behind everything"
+- "Create a null object and parent all layers to it"
+- "Add an adjustment layer with a Curves effect on top"
+
+**Animation:**
+
+- "Add a zoom-in animation to the text layer"
+- "Fade in all layers over 1 second"
+- "Add a bounce scale animation to layer 1"
+- "Animate the text position from left to center with ease"
+- "Add a wiggle expression to the position of the text layer"
+- "Stagger the fade-in of all layers by 0.2 seconds"
+
+**Effects and styling:**
+
+- "Apply a Gaussian blur of 15px to the background"
+- "Add a drop shadow to the text layer"
+- "Set the text color to red and font size to 72"
+- "Add a vignette using a dark solid with an elliptical mask"
+
+**Project management:**
+
+- "List all compositions in the project"
+- "Rename layer 1 to 'Title'"
+- "Lock all layers except the text layer"
 - "Render the active comp to the desktop as a QuickTime file"
 
-Press **Enter** to send (Shift+Enter for newline).
+**Iterative refinement** — follow up with context from the conversation:
+
+- "Make it bigger"
+- "Change the color to red"
+- "Make the animation slower"
+- "Add the same effect to all other layers"
 
 ## Providers
 
-| Provider | Models | API Key |
-|----------|--------|---------|
-| Claude (Anthropic) | Sonnet 4, Opus 4, Haiku 4 | [console.anthropic.com](https://console.anthropic.com/) |
-| OpenAI | GPT-4o, GPT-4o Mini, GPT-4.1 | [platform.openai.com](https://platform.openai.com/) |
-| Ollama (Local) | Any model (qwen2.5-coder, llama3, etc.) | None (free, local) |
+| Provider           | Models                                  | API Key                                                 |
+| ------------------ | --------------------------------------- | ------------------------------------------------------- |
+| Claude (Anthropic) | Sonnet 4, Opus 4, Haiku 4               | [console.anthropic.com](https://console.anthropic.com/) |
+| OpenAI             | GPT-4o, GPT-4o Mini, GPT-4.1            | [platform.openai.com](https://platform.openai.com/)     |
+| Ollama (Local)     | Any model (qwen2.5-coder, llama3, etc.) | None (free, local)                                      |
 
 ## Building a ZXP for distribution
 
@@ -108,9 +151,11 @@ npm test             # run tests (36 tests across 3 suites)
 npm run test:watch   # run tests in watch mode
 npm run lint         # lint client JS + ExtendScript
 npm run lint:fix     # auto-fix lint issues
+npm run deploy       # copy extension to CEP extensions folder
 ```
 
 ESLint is configured with two rulesets:
+
 - **`client/js/`** — modern JS (ES2020) for the CEP Chromium environment
 - **`host/`** — ES3 for ExtendScript (catches accidental use of `let`, arrow functions, template literals, etc.)
 

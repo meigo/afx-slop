@@ -206,9 +206,19 @@ function looksLikeCode(text) {
 }
 
 function formatErrorForRetry(code, error) {
+    var hint = "";
+    if (error.indexOf("setTemporalEaseAtKey") !== -1) {
+        hint = "\nHint: Do NOT use setTemporalEaseAtKey directly. Use the helper: " +
+            "setEase(prop, keyIndex, speed, influence) — it auto-detects dimensions.\n";
+    } else if (error.indexOf("return") !== -1 && error.indexOf("outside") !== -1) {
+        hint = "\nHint: Do not use top-level return. Wrap in (function() { ... })();\n";
+    } else if (error.indexOf("is undefined") !== -1 && error.indexOf("Function") !== -1) {
+        hint = "\nHint: ExtendScript is ES3. Methods like .fill(), .find(), .map(), .filter(), " +
+            ".forEach(), .includes(), Object.keys() do NOT exist. Use for-loops instead.\n";
+    }
     return "The following ExtendScript code produced an error:\n\n" +
         "```javascript\n" + code + "\n```\n\n" +
-        "Error:\n```\n" + error + "\n```\n\n" +
+        "Error:\n```\n" + error + "\n```\n" + hint + "\n" +
         "Please fix the code. Respond only with the corrected ExtendScript code.";
 }
 
@@ -330,27 +340,36 @@ function formatLayer(l) {
 // ─── Execute Code in AE ────────────────────────────────────────────────────────
 
 async function executeInAE(code) {
-    // Escape the code for passing through evalScript
-    var escaped = code
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t");
+    // Encode the code as base64 to avoid all quoting/escaping issues with evalScript.
+    // ExtendScript decodes it on the other side before eval().
+    var encoded = btoa(unescape(encodeURIComponent(code)));
 
     try {
-        var result = await evalScript('executeCode("' + escaped + '")');
-        return JSON.parse(result);
+        var result = await evalScript("executeCode('" + encoded + "')");
+        if (!result || result === "undefined") {
+            return { success: false, output: "", error: "No response from After Effects" };
+        }
+        var cleaned = result.replace(/^\uFEFF/, "").trim();
+        return JSON.parse(cleaned);
     } catch (e) {
-        return { success: false, output: "", error: "Panel error: " + e.message };
+        return { success: false, output: result || "", error: "Panel error: " + e.message };
     }
 }
 
 // ─── Main Send Flow ────────────────────────────────────────────────────────────
 
+function sanitizePrompt(text) {
+    // Replace curly/smart quotes with straight quotes to avoid encoding issues
+    return text
+        .replace(/[\u2018\u2019\u201A]/g, "'")
+        .replace(/[\u201C\u201D\u201E]/g, '"')
+        .replace(/[\u2013\u2014]/g, "-")
+        .replace(/\u2026/g, "...");
+}
+
 async function sendMessage() {
     var input = document.getElementById("prompt-input");
-    var promptText = input.value.trim();
+    var promptText = sanitizePrompt(input.value.trim());
 
     if (!promptText || state.isBusy) return;
 
@@ -386,8 +405,8 @@ async function callLLMAndExecute(settings) {
         // Build system prompt
         var systemPrompt = buildSystemPrompt(sceneContext, settings.richPrompt);
 
-        // Keep conversation trimmed (last 20 exchanges)
-        var messages = state.conversationHistory.slice(-40);
+        // Keep conversation trimmed (last 10 exchanges)
+        var messages = state.conversationHistory.slice(-20);
 
         // Call LLM
         var response = await LLMClient.call(settings, systemPrompt, messages);
@@ -459,4 +478,5 @@ function handleKeyDown(event) {
 
 document.addEventListener("DOMContentLoaded", function() {
     loadSettings();
+
 });

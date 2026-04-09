@@ -105,18 +105,30 @@ const LLMClient = {
     },
 
     /**
-     * Dispatch to the correct provider.
+     * Dispatch to the correct provider with rate limit retry.
      */
     async call(settings, systemPrompt, messages) {
-        switch (settings.provider) {
-            case "claude":
-                return this.callClaude(settings.claudeApiKey, settings.claudeModel, systemPrompt, messages);
-            case "openai":
-                return this.callOpenAI(settings.openaiApiKey, settings.openaiModel, systemPrompt, messages);
-            case "ollama":
-                return this.callOllama(settings.ollamaUrl, settings.ollamaModel, systemPrompt, messages);
-            default:
-                throw new Error("Unknown provider: " + settings.provider);
+        var maxAttempts = 3;
+        for (var attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                switch (settings.provider) {
+                    case "claude":
+                        return await this.callClaude(settings.claudeApiKey, settings.claudeModel, systemPrompt, messages);
+                    case "openai":
+                        return await this.callOpenAI(settings.openaiApiKey, settings.openaiModel, systemPrompt, messages);
+                    case "ollama":
+                        return await this.callOllama(settings.ollamaUrl, settings.ollamaModel, systemPrompt, messages);
+                    default:
+                        throw new Error("Unknown provider: " + settings.provider);
+                }
+            } catch (e) {
+                if (e.message && e.message.indexOf("429") !== -1 && attempt < maxAttempts - 1) {
+                    // Wait before retrying (2s, 4s)
+                    await new Promise(function(r) { setTimeout(r, (attempt + 1) * 2000); });
+                    continue;
+                }
+                throw e;
+            }
         }
     },
 };

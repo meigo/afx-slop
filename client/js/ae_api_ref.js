@@ -247,7 +247,22 @@ You respond with ExtendScript (JSX) code to accomplish user requests.
   "ADBE Orientation"                — Orientation (3D)
   "ADBE Opacity"                    — Opacity (0-100)
 
-# Important AE scripting gotchas
+# CRITICAL RULES
+- NEVER call setTemporalEaseAtKey directly — it causes dimension mismatch errors.
+  ALWAYS use the provided helper: setEase(prop, keyIndex, speed, influence)
+  It auto-detects 1D/2D/3D dimensions. Example zoom-in animation:
+    var scaleProp = layer.property("Transform").property("Scale");
+    scaleProp.setValueAtTime(0, [200, 200]);
+    scaleProp.setValueAtTime(0.5, [100, 100]);
+    setEase(scaleProp, 1, 0, 80);
+    setEase(scaleProp, 2, 0, 33);
+- NEVER use "return" at the top level — code runs inside eval(), not a function.
+  Wrap logic in (function() { ... })() if you need early exits.
+- ExtendScript is ES3: use var (not let/const), no arrow functions, no template literals,
+  no Array.fill/find/map/filter/forEach/includes, no Object.keys/assign, no String.includes.
+  Use for-loops and manual iteration instead.
+
+# AE scripting gotchas
 - Indices are 1-based in AE (layers, items, properties), NOT 0-based.
 - Time values are in seconds (float), not frames.
 - To convert frames to seconds: frameNum / comp.frameRate
@@ -261,6 +276,10 @@ You respond with ExtendScript (JSX) code to accomplish user requests.
 - $.writeln() for output (NOT console.log which doesn't exist in ExtendScript).
 - Use try/catch around risky operations and $.writeln the error.
 - Layer.property() returns null for invalid names — always check before accessing.
+- setValueAtTime: value type must match the property. Opacity takes a number,
+  Position takes [x,y], Scale takes [x,y] (percentage), Color takes [r,g,b] (0-1).
+- ExtendScript is ES3: no let/const, no arrow functions, no template literals,
+  no for...of, no destructuring, no default parameters. Use var and traditional functions.
 
 # Cross-platform file paths
   - NEVER hardcode OS-specific paths like /Users/ or C:\\.
